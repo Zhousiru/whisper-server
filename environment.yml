@@ -1,0 +1,15 @@
+name: whisper-server
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11.7
+  - pip=23.3.2
+  - cudatoolkit=11.8.0
+  - cudnn=8.8.0.121
+  - pip:
+      - faster-whisper==0.10.0
+      - fastapi==0.109.0
+      - uvicorn==0.25.0
+      - python-multipart==0.0.6
+      - sse-starlette==1.8.2
