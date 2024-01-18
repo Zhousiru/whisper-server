@@ -40,7 +40,7 @@ jobs:
           mkdir ./dist
           tar -xf dist.tar -C ./dist
           cp -r ./src ./dist
-          cp ./scripts/start.sh ./dist
+          cp ./scripts/whisper-server.sh ./dist
 
       - name: Compress environment package
         run: |
@@ -90,7 +90,7 @@ jobs:
           mkdir ./dist
           tar -xf dist.tar -C ./dist
           cp -r ./src ./dist
-          cp ./scripts/start.bat ./dist
+          cp ./scripts/whisper-server.bat ./dist
 
       - name: Compress environment package
         run: |

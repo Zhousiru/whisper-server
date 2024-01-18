@@ -1,4 +1,5 @@
 import io
+import os
 import json
 import logging
 from typing import Annotated, Optional
@@ -13,7 +14,7 @@ from contextlib import asynccontextmanager
 if __name__ == "__main__":
     args = parse_args()
     uvicorn.run("main:app", host=args.host, port=args.port, workers=1,
-                log_level="info", reload=True)
+                log_level="info", reload=(os.getenv("DEBUG") == "1"))
 
 
 @asynccontextmanager
