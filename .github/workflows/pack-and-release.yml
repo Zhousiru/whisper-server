@@ -1,0 +1,153 @@
+name: Pack and Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  pack-for-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare variables
+        shell: bash
+        run: echo "SHA_SHORT=$(git rev-parse --short "$GITHUB_SHA")" >> $GITHUB_ENV
+
+      - name: Install conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: ''
+          auto-activate-base: true
+
+      - name: Install conda-pack
+        shell: bash -el {0}
+        run: conda install -c conda-forge conda-pack
+
+      - name: Install environment
+        shell: bash -el {0}
+        run: conda env create -f ./environment.yml
+
+      - name: Export environment
+        shell: bash -el {0}
+        run: |
+          conda activate whisper-server
+          conda pack -o dist.tar
+          mkdir ./dist
+          tar -xf dist.tar -C ./dist
+          cp -r ./src ./dist
+          cp ./scripts/start.sh ./dist
+
+      - name: Compress environment package
+        run: |
+          sudo apt update
+          sudo apt install p7zip-full
+          7z a ./whisper-server-${{ env.SHA_SHORT }}-linux-64.7z ./dist/*
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: whisper-server-${{ env.SHA_SHORT }}-linux-64
+          path: ./whisper-server-${{ env.SHA_SHORT }}-linux-64.7z
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  pack-for-win:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare variables
+        shell: bash
+        run: echo "SHA_SHORT=$(git rev-parse --short "$GITHUB_SHA")" >> $GITHUB_ENV
+
+      - name: Install conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: ''
+          auto-activate-base: true
+
+      - name: Install conda-pack
+        shell: bash -el {0}
+        run: conda install -c conda-forge conda-pack
+
+      - name: Install environment
+        shell: bash -el {0}
+        run: conda env create -f ./environment.yml
+
+      - name: Export environment
+        shell: bash -el {0}
+        run: |
+          conda activate whisper-server
+          conda pack -o dist.tar
+          mkdir ./dist
+          tar -xf dist.tar -C ./dist
+          cp -r ./src ./dist
+          cp ./scripts/start.bat ./dist
+
+      - name: Compress environment package
+        run: |
+          7z a ./whisper-server-${{ env.SHA_SHORT }}-win-64.7z ./dist/*
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: whisper-server-${{ env.SHA_SHORT }}-win-64
+          path: ./whisper-server-${{ env.SHA_SHORT }}-win-64.7z
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [pack-for-linux, pack-for-win]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          path: './dist'
+          merge-multiple: true
+
+      - name: Update latest tag
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              await github.rest.git.createRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: 'refs/tags/latest',
+                sha: context.sha,
+              })
+            } catch (e) {
+              await github.rest.git.updateRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: 'tags/latest',
+                sha: context.sha,
+                force: true,
+              })
+            }
+
+      - uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          prerelease: true
+          tag: latest
+          removeArtifacts: true
+          name: Dev Build
+          artifacts: './dist/whisper-server-*.7z'
+          body: |
+            > [!NOTE]
+            > By downloading and using the CUDA Toolkit and cuDNN packages, you accept the terms and conditions of the [NVIDIA CUDA EULA](https://docs.nvidia.com/cuda/eula/index.html) and [NVIDIA cuDNN EULA](https://docs.nvidia.com/deeplearning/cudnn/sla/index.html).
