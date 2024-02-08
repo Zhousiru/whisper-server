@@ -1,3 +1,3 @@
 @echo off
-call .\Scripts\activate.bat
-python .\src\main.py %*
+call %~dp0Scripts\activate.bat
+python %~dp0src\main.py %*

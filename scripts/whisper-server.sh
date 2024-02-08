@@ -1,3 +1,3 @@
 #!/bin/bash
-source ./bin/activate
-python ./src/main.py "$@"
+source "$(dirname "\$0")/bin/activate"
+python "$(dirname "\$0")/src/main.py" "$@"
