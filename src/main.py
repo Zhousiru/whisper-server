@@ -2,6 +2,7 @@ import io
 import os
 import json
 import logging
+import sys
 from typing import Annotated, Optional
 from faster_whisper import WhisperModel
 from sse_starlette import EventSourceResponse
@@ -12,6 +13,10 @@ from contextlib import asynccontextmanager
 
 
 if __name__ == "__main__":
+    sys.stdin.reconfigure(encoding="utf-8")
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+
     args = parse_args()
     uvicorn.run("main:app", host=args.host, port=args.port, workers=1,
                 log_level="info", reload=(os.getenv("DEBUG") == "1"))
