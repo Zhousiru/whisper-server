@@ -1,16 +1,18 @@
-import io
-import os
-import json
+import asyncio
 import logging
+import os
 import sys
+from contextlib import asynccontextmanager
 from typing import Annotated, Optional
-from faster_whisper import WhisperModel
-from sse_starlette import EventSourceResponse
+
 import uvicorn
 from fastapi import FastAPI, File, Request
-from args import parse_args
-from contextlib import asynccontextmanager
+from faster_whisper import WhisperModel
+from sse_starlette import EventSourceResponse
 
+from args import parse_args
+from tasks import TaskOptions, TaskManager
+from utils import response
 
 if __name__ == "__main__":
     sys.stdin.reconfigure(encoding="utf-8")
@@ -26,31 +28,46 @@ if __name__ == "__main__":
 async def lifespan(app: FastAPI):
     logger = logging.getLogger("uvicorn")
     args = parse_args()
+
     logger.info("Loading model...")
     app.state.model = WhisperModel(args.model, device=args.device,
                                    compute_type=args.type)
     logger.info("Model loaded.")
 
+    app.state.msg_queue = asyncio.Queue[str]()
+    app.state.task_manager = TaskManager(app.state.model, app.state.msg_queue)
+
     yield
 
+    app.state.task_manager.cancel_all()
     del app.state.model
 
 
 app = FastAPI(lifespan=lifespan)
 
 
-@app.post("/transcribe")
-async def transcribe(request: Request, file: Annotated[bytes, File()], lang: Optional[str] = None, prompt: Optional[str] = None, vad: bool = True):
-    async def transcribe_streamer():
-        segments, info = app.state.model.transcribe(
-            io.BytesIO(file), language=lang, initial_prompt=prompt, vad_filter=vad)
-
-        if (lang == None):
-            yield json.dumps({"type": "language detection", "data": info.language})
-
-        for s in segments:
+@app.get("/monitor")
+async def monitor(request: Request):
+    async def streamer():
+        while True:
             if await request.is_disconnected():
                 break
-            yield json.dumps({"type": "transcription", "data": {"start": s.start, "end": s.end, "text": s.text}})
+            yield await app.state.msg_queue.get()
 
-    return EventSourceResponse(transcribe_streamer())
+    return EventSourceResponse(streamer())
+
+
+@app.post("/add-task")
+async def add_task(name: str, file: Annotated[bytes, File()], lang: Optional[str] = None, prompt: Optional[str] = None, vad: bool = True):
+    try:
+        options = TaskOptions(file, lang, prompt, vad)
+        app.state.task_manager.add(name, options)
+        return response("ok")
+    except ValueError as e:
+        return response("error", str(e))
+
+
+@app.get("/cancel-task")
+async def cancel_task(name: str):
+    app.state.task_manager.cancel(name)
+    return response("ok")
