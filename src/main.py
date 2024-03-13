@@ -7,12 +7,12 @@ from typing import Annotated, Optional
 
 import uvicorn
 from fastapi import FastAPI, File, Request
+from fastapi.middleware.cors import CORSMiddleware
 from faster_whisper import WhisperModel
 from sse_starlette import EventSourceResponse
-from fastapi.middleware.cors import CORSMiddleware
 
 from args import parse_args
-from tasks import TaskOptions, TaskManager
+from tasks import TaskManager, TaskOptions
 from utils import check_lang_code, response
 
 if __name__ == "__main__":

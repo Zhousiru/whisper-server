@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 from dataclasses import dataclass
 from io import BytesIO
 from typing import Optional
@@ -88,7 +89,8 @@ class TaskManager:
                 vad_filter=options.vad
             )
         except Exception as e:
-            print(f"Failed to transcribe {task_name}:", e)
+            logging.getLogger('uvicorn').error(
+                f"Failed to transcribe {task_name}: {e}")
             self.cancel(task_name)
             return
 
