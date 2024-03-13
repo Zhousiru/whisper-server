@@ -79,13 +79,18 @@ class TaskManager:
             }
         ))
 
-        segments, info = await asyncio.to_thread(
-            self.model.transcribe,
-            BytesIO(options.file),
-            language=options.lang,
-            initial_prompt=options.prompt,
-            vad_filter=options.vad
-        )
+        try:
+            segments, info = await asyncio.to_thread(
+                self.model.transcribe,
+                BytesIO(options.file),
+                language=options.lang,
+                initial_prompt=options.prompt,
+                vad_filter=options.vad
+            )
+        except Exception as e:
+            print(f"Failed to transcribe {task_name}:", e)
+            self.cancel(task_name)
+            return
 
         self.msg_queue.put_nowait(json.dumps(
             {

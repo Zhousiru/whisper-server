@@ -9,10 +9,11 @@ import uvicorn
 from fastapi import FastAPI, File, Request
 from faster_whisper import WhisperModel
 from sse_starlette import EventSourceResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from args import parse_args
 from tasks import TaskOptions, TaskManager
-from utils import response
+from utils import check_lang_code, response
 
 if __name__ == "__main__":
     sys.stdin.reconfigure(encoding="utf-8")
@@ -45,6 +46,18 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+allow_origins = [
+    "*",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allow_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.get("/monitor")
 async def monitor(request: Request):
@@ -58,8 +71,11 @@ async def monitor(request: Request):
 
 
 @app.post("/add-task")
-async def add_task(name: str, file: Annotated[bytes, File()], lang: Optional[str] = None, prompt: Optional[str] = None, vad: bool = True):
+async def add_task(name: str, file: Annotated[bytes, File()], lang: Optional[str] = None, prompt: Optional[str] = None, vad: bool | str = True):
+    lang = lang or None
+
     try:
+        check_lang_code(lang)
         options = TaskOptions(file, lang, prompt, vad)
         app.state.task_manager.add(name, options)
         return response("ok")
