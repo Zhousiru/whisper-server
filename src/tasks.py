@@ -91,7 +91,19 @@ class TaskManager:
         except Exception as e:
             logging.getLogger('uvicorn').error(
                 f"Failed to transcribe {task_name}: {e}")
-            self.cancel(task_name)
+
+            for record in self.tasks:
+                if (record.task_name == task_name):
+                    self.tasks.remove(record)
+
+            self.msg_queue.put_nowait(json.dumps(
+                {
+                    "taskName": task_name,
+                    "type": "status",
+                    "data": "error"
+                }
+            ))
+
             return
 
         self.msg_queue.put_nowait(json.dumps(
