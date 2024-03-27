@@ -86,7 +86,8 @@ class TaskManager:
                 BytesIO(options.file),
                 language=options.lang,
                 initial_prompt=options.prompt,
-                vad_filter=options.vad
+                vad_filter=options.vad,
+                word_timestamps=True
             )
         except Exception as e:
             logging.getLogger('uvicorn').error(
