@@ -42,6 +42,30 @@ jobs:
           cp -r ./src ./dist
           cp ./scripts/whisper-server.sh ./dist
 
+      - name: Clean up unnecessary files
+        run: |
+          echo "=== Before cleanup ==="
+          du -sh ./dist
+          echo ""
+          echo "=== Top 20 largest directories ==="
+          du -h ./dist --max-depth=3 | sort -hr | head -30
+          echo ""
+          echo "=== Top 20 largest files ==="
+          find ./dist -type f -exec du -h {} + | sort -hr | head -20
+          echo ""
+          echo "=== Cleaning up ==="
+          find ./dist -name "*.a" -delete
+          find ./dist -name "*.pyc" -delete
+          find ./dist -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+          rm -rf ./dist/include
+          rm -rf ./dist/share/doc
+          rm -rf ./dist/share/man
+          rm -rf ./dist/lib/pkgconfig
+          rm -rf ./dist/lib/cmake
+          echo ""
+          echo "=== After cleanup ==="
+          du -sh ./dist
+
       - name: Compress environment package
         run: |
           sudo apt update
@@ -91,6 +115,18 @@ jobs:
           tar -xf dist.tar -C ./dist
           cp -r ./src ./dist
           cp ./scripts/whisper-server.bat ./dist
+
+      - name: Analyze package size
+        shell: bash
+        run: |
+          echo "=== Total size ==="
+          du -sh ./dist
+          echo ""
+          echo "=== Top 20 largest directories ==="
+          du -h ./dist --max-depth=3 | sort -hr | head -30
+          echo ""
+          echo "=== Top 20 largest files ==="
+          find ./dist -type f -exec du -h {} + | sort -hr | head -20
 
       - name: Compress environment package
         run: |

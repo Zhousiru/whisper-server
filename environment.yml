@@ -1,14 +1,16 @@
 name: whisper-server
 channels:
+  - nvidia
   - conda-forge
   - defaults
 dependencies:
   - python=3.11.7
   - pip=23.3.2
-  - cudatoolkit=11.8.0
-  - cudnn=8.8.0.121
+  - cuda-cudart=12.6
+  - libcublas=12.6
+  - cudnn=9.3
   - pip:
-      - faster-whisper==0.10.0
+      - faster-whisper==1.2.1
       - fastapi==0.109.0
       - uvicorn==0.25.0
       - python-multipart==0.0.6
