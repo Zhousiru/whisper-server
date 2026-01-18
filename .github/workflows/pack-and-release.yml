@@ -42,6 +42,18 @@ jobs:
           cp -r ./src ./dist
           cp ./scripts/whisper-server.sh ./dist
 
+      - name: Clean up unnecessary files
+        run: |
+          find ./dist -name "*.a" -delete
+          find ./dist -name "*.pyc" -delete
+          find ./dist -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+          rm -rf ./dist/include
+          rm -rf ./dist/share/doc
+          rm -rf ./dist/share/man
+          rm -rf ./dist/lib/pkgconfig
+          rm -rf ./dist/lib/cmake
+          du -sh ./dist
+
       - name: Compress environment package
         run: |
           sudo apt update
